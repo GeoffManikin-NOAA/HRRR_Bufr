@@ -1,0 +1,45 @@
+#!/bin/ksh
+#@ job_name = rap_wrfbufr
+#@ step_name = rap_wrfbufr 
+#@ output = /meso/save/wx20mg/rap13/bufr/rapbufr.out
+#@ error = /meso/save/wx20mg/rap13/bufr/rapbufr.out
+#@ notification = never
+#@ job_type = parallel
+#@ wall_clock_limit = 00:30:00
+#@ total_tasks = 1
+#@ account_no=RAP-T2O
+#@ class = devhigh
+#@ group = devonprod
+#@ resources = ConsumableCpus(1) ConsumableMemory(1 GB)
+#@ network.MPI = csss,shared,us
+#@ queue
+#
+
+mkdir -p /stmp/wx20mg/rapsndp
+cd /stmp/wx20mg/rapsndp
+
+cyc=18
+ymdh=`cut -c 7-16 /com/date/t${cyc}z`
+ymdh=2012030818
+
+export tmmark=tm00
+export XLFRTEOPTS="unit_vars=yes"
+cp /ptmp/wx20mg/rap13/profilm/profilm.c1.tm00 .
+
+############### SNDP code
+
+### needs to be formalized
+
+cp /meso/save/wx20py/wrfbufr_dtc/scripts/eta*tbl .
+cp /meso/save/wx20py/wrfbufr_dtc/wrfbufr_source/modtop.parm .
+cp /meso/save/wx20py/wrfbufr_dtc/scripts/sndp.parm.mono ./sndp.parm
+
+ln -sf sndp.parm    fort.11
+ln -sf eta_bufr.tbl fort.32
+ln -sf profilm.c1.${tmmark} fort.66
+ln -sf class1.bufr fort.78
+
+/meso/save/wx20mg/rap13/exec/rap_sndp < modtop.parm  > sndp.out
+
+echo EXITING $0 with return code $err
+exit $err

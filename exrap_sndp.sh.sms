@@ -1,0 +1,81 @@
+#!/bin/ksh
+#@ job_name = rap_wrfbufr
+#@ step_name = rap_wrfbufr 
+#@ output = /meso/save/wx20mg/rap13/bufr/rapbufr.out
+#@ error = /meso/save/wx20mg/rap13/bufr/rapbufr.out
+#@ notification = never
+#@ job_type = parallel
+#@ wall_clock_limit = 00:30:00
+#@ total_tasks = 1
+#@ account_no=RAP-T2O
+#@ class = devhigh
+#@ group = devonprod
+#@ resources = ConsumableCpus(1) ConsumableMemory(1 GB)
+#@ network.MPI = csss,shared,us
+#@ queue
+#
+
+######################################################################
+####  UNIX Script Documentation Block
+#                      .                                             .
+# Script name:         exrap_sndpost.sh
+# Script description:  Trigger Rapid Refresh  sounding post job
+#
+# Author:       G Manikin      Date: 2010-12-06
+#
+# Abstract: This script triggers the RR sounding post job, which
+#           creates a piece of the model sounding profile whose
+#           time interval is determined by the input forecast hours.
+#
+# Script history log:
+# 2010-12-06  Geoff Manikin -- adapted Matt Pyle's script for RR 
+#
+set -x
+
+mkdir -p /stmp/wx20mg/bufr
+cd /stmp/wx20mg/bufr
+
+cyc=06
+ymdh=`cut -c 7-16 /com/date/t${cyc}z`
+export tmmark=tm00
+export XLFRTEOPTS="unit_vars=yes"
+
+############### SNDP code
+
+### needs to be formalized
+
+cp /meso/save/wx20py/wrfbufr_dtc/scripts/eta*tbl .
+cp /meso/save/wx20py/wrfbufr_dtc/wrfbufr_source/modtop.parm .
+cp /meso/save/wx20py/wrfbufr_dtc/scripts/sndp.parm.mono ./sndp.parm
+cp /ptmp/wx20mg/rap13/profilm/profilm.c1.tm00 .
+ln -sf sndp.parm    fort.11
+ln -sf eta_bufr.tbl fort.32
+ln -sf profilm.c1.${tmmark} fort.66
+ln -sf class1.bufr fort.78
+
+/meso/save/wx20mg/rap13/exec/rap_sndp < modtop.parm  > sndp.out
+exit
+############### put into gempak (eliminate when RFC)
+
+PARM=/meso/save/wx20py/gem_tables_5.11/pack
+namsnd << enddebuf
+ SNBUFR   = class1.bufr
+ SNOUTF   = ${RUN}_${startd}${cyc}.snd
+ SFOUTF   = ${RUN}_${startd}${cyc}.sfc+
+ SNPRMF   = $PARM/sneta.prm
+ SFPRMF   = $PARM/sfeta.prm
+ TIMSTN   = 50/1200
+r
+
+ex
+
+enddebuf
+
+############### end put into gempak (eliminate when RFC)
+
+
+cp ${RUN}_${startd}${cyc}.* ${COMOUT}
+cp profilm.c1.${tmmark} ${COMOUT}/${RUN}_t${cyc}z_profilm.c1.${tmmark}
+
+echo EXITING $0 with return code $err
+exit $err

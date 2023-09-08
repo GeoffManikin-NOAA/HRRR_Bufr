@@ -1,0 +1,216 @@
+#!/bin/ksh
+#@ job_name = rap_wrfbufr
+#@ step_name = rap_wrfbufr 
+#@ output = /meso/save/wx20mg/rap13/bufr/rapbufr.out
+#@ error = /meso/save/wx20mg/rap13/bufr/rapbufr.out
+#@ notification = never
+#@ job_type = parallel
+#@ wall_clock_limit = 00:30:00
+#@ total_tasks = 1
+#@ account_no=RAP-T2O
+#@ class = devhigh
+#@ group = devonprod
+#@ resources = ConsumableCpus(1) ConsumableMemory(1 GB)
+#@ network.MPI = csss,shared,us
+#@ queue
+#
+
+######################################################################
+####  UNIX Script Documentation Block
+#                      .                                             .
+# Script name:         exrap_sndpost.sh
+# Script description:  Trigger Rapid Refresh  sounding post job
+#
+# Author:       G Manikin      Date: 2010-12-06
+#
+# Abstract: This script triggers the RR sounding post job, which
+#           creates a piece of the model sounding profile whose
+#           time interval is determined by the input forecast hours.
+#
+# Script history log:
+# 2010-12-06  Geoff Manikin -- adapted Matt Pyle's script for RR 
+#
+set -x
+
+mkdir -p /stmp/wx20mg/bufr
+rm /stmp/wx20mg/bufr/*
+cd /stmp/wx20mg/bufr
+
+cyc=12
+ymdh=`cut -c 7-16 /com/date/t${cyc}z`
+export tmmark=tm00
+export XLFRTEOPTS="unit_vars=yes"
+cp /meso/save/wx20mg/rap13/bufr/rap_profdat .
+
+OUTTYP=binary
+model=RAPR
+
+INCR=01
+
+let NFILE=1
+
+YYYY=`echo $ymdh | cut -c1-4`
+MM=`echo $ymdh | cut -c5-6`
+DD=`echo $ymdh | cut -c7-8`
+CYCLE=$YYYY$MM$DD$cyc
+CYCLE1=`/nwprod/util/exec/ndate -1 $CYCLE`
+filedir=/ptmp/wx20mg/rap13/DOMAINS/wrfrr13_cycle/${CYCLE}/wrfprd
+filedirm1=/ptmp/wx20mg/rap13/DOMAINS/wrfrr13_cycle/${CYCLE1}/wrfprd
+startd=$YYYY$MM$DD
+startdate=$CYCLE
+
+endtime=`/nwprod/util/exec/ndate 18 $CYCLE`
+
+STARTDATE=${YYYY}-${MM}-${DD}_${cyc}:00:00
+
+YYYY=`echo $endtime | cut -c1-4`
+MM=`echo $endtime | cut -c5-6`
+DD=`echo $endtime | cut -c7-8`
+CYC2=`echo $endtime | cut -c9-10`
+
+FINALDATE=${YYYY}-${MM}-${DD}_${CYC2}:00:00
+
+wyr=`echo $STARTDATE | cut -c1-4`
+wmn=`echo $STARTDATE | cut -c6-7`
+wdy=`echo $STARTDATE | cut -c9-10`
+whr=`echo $STARTDATE | cut -c12-13`
+
+eyr=`echo $FINALDATE | cut -c1-4`
+emn=`echo $FINALDATE | cut -c6-7`
+edy=`echo $FINALDATE | cut -c9-10`
+ehr=`echo $FINALDATE | cut -c12-13`
+
+echo 'start end'
+echo $STARTDATE
+echo $FINALDATE
+
+edate=$eyr$emn$edy$ehr
+
+# If job needs to be restarted due to production failure, reset
+# wdate=valid date of first available WRF restart file
+
+wdate=$wyr$wmn$wdy$whr
+
+timeform=$STARTDATE
+
+if [ $wdate -eq $startdate ] ; then
+  fhr=00
+else
+  fhr=`/nwprod/util/exec/nhour $wdate $startdate`
+fi
+
+export fhr
+echo 'fhr ' $fhr 
+
+while [ $wdate -le $edate ]
+do
+
+date=`/nwprod/util/exec/ndate $fhr $CYCLE`
+
+wyr=`echo $date | cut -c1-4`
+wmn=`echo $date | cut -c5-6`
+wdy=`echo $date | cut -c7-8`
+whr=`echo $date | cut -c9-10`
+
+let fhrold="$fhr - 1"
+dateold=`/nwprod/util/exec/ndate $fhrold $CYCLE`
+
+oyr=`echo $dateold | cut -c1-4`
+omn=`echo $dateold | cut -c5-6`
+ody=`echo $dateold | cut -c7-8`
+ohr=`echo $dateold | cut -c9-10`
+
+timeform=${wyr}"-"${wmn}"-"${wdy}"_"${whr}":00:00"
+timeformold=${oyr}"-"${omn}"-"${ody}"_"${ohr}":00:00"
+
+mkdir /ptmp/wx20mg/wrfout
+filedir2=/ptmp/wx20mg/wrfout
+cp $filedir/wrfout_d01_${timeform} $filedir2/.
+if [ $fhr -eq 0 ]; then
+cp $filedirm1/wrfout_d01_${timeformold} $filedir2/.
+else
+cp $filedir/wrfout_d01_${timeformold} $filedir2/.
+fi
+
+OUTFIL=$filedir2/wrfout_d01_${timeform}
+OLDOUTFIL=$filedir2/wrfout_d01_${timeformold}
+
+icnt=1
+
+cat > itag <<EOF
+$OUTFIL
+$model
+$OUTTYP
+$STARTDATE
+$NFILE
+$INCR
+$fhr
+$OLDOUTFIL
+EOF
+ 
+export XLFUNIT_19=rap_profdat
+export XLFUNIT_79=profilm.c1
+
+/meso/save/wx20mg/rap13/exec/rap_wrfbufr < itag >> /stmp/wx20mg/bufr/bufr${fhr}.out
+
+mv profilm.c1 profilm.c1.${tmmark}.f${fhr}
+
+if [ $fhr -ne 0 ]; then
+cat profilm.c1.${tmmark}  profilm.c1.${tmmark}.f${fhr} > profilm_int
+else
+cp profilm.c1.${tmmark}.f${fhr} profilm_int
+fi
+
+mv profilm_int profilm.c1.${tmmark}
+
+fhr=`expr $fhr + $INCR`
+
+
+if [ $fhr -lt 10 ]
+then
+fhr=0$fhr
+fi
+
+wdate=`/nwprod/util/exec/ndate ${fhr} $CYCLE`
+
+done
+
+############### SNDP code
+
+### needs to be formalized
+
+cp /meso/save/wx20py/wrfbufr_dtc/scripts/eta*tbl .
+cp /meso/save/wx20py/wrfbufr_dtc/wrfbufr_source/modtop.parm .
+cp /meso/save/wx20py/wrfbufr_dtc/scripts/sndp.parm.mono ./sndp.parm
+
+ln -sf sndp.parm    fort.11
+ln -sf eta_bufr.tbl fort.32
+ln -sf profilm.c1.${tmmark} fort.66
+ln -sf class1.bufr fort.78
+
+/meso/save/wx20mg/rap13/exec/rap_sndp < modtop.parm  > sndp.out
+exit
+############### put into gempak (eliminate when RFC)
+
+PARM=/meso/save/wx20py/gem_tables_5.11/pack
+namsnd << enddebuf
+ SNBUFR   = class1.bufr
+ SNOUTF   = ${RUN}_${startd}${cyc}.snd
+ SFOUTF   = ${RUN}_${startd}${cyc}.sfc+
+ SNPRMF   = $PARM/sneta.prm
+ SFPRMF   = $PARM/sfeta.prm
+ TIMSTN   = 50/1200
+r
+
+ex
+
+enddebuf
+
+############### end put into gempak (eliminate when RFC)
+
+
+cp ${RUN}_${startd}${cyc}.* ${COMOUT}
+cp profilm.c1.${tmmark} ${COMOUT}/${RUN}_t${cyc}z_profilm.c1.${tmmark}
+
+echo EXITING $0 with return code $err
+exit $err

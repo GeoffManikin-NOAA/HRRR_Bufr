@@ -1,0 +1,8 @@
+Feb  5 22:03:57 2018 22545 7 9.1.3 jobSetupStatus: job additionalInfo reservation_id=8308864
+ModuleCmd_Load.c(200):ERROR:105: Unable to locate a modulefile for 'eswrap/1.3.3-1.020200.1278.0'
+dvs(3):ERROR:105: Unable to locate a modulefile for 'dvs/2.5_0.9.0-1.0502.1958.2.55.ari'
+ModuleCmd_Load.c(200):ERROR:105: Unable to locate a modulefile for 'anaconda'
+cray-mpich/7.2.0 requires craype/1.00 or later or xt-asyncpe/5.11 or later
+ModuleCmd_Load.c(200):ERROR:105: Unable to locate a modulefile for 'ics'
+ModuleCmd_Load.c(200):ERROR:105: Unable to locate a modulefile for 'ibmpe'
+rm: cannot remove `fort.*': No such file or directory

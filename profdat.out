@@ -1,0 +1,108 @@
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@nid02108>
+Subject: Job 1829: <make_profdat> in cluster <NCEP-RESTON> Exited
+
+Job <make_profdat> was submitted from host <llogin1> by user <Geoffrey.Manikin> in cluster <NCEP-RESTON> at Mon Feb  5 21:46:20 2018.
+Job was executed on host(s) <1*nid02108>, in queue <dev>, as user <Geoffrey.Manikin> in cluster <NCEP-RESTON> at Mon Feb  5 22:03:54 2018.
+                            <1*nid00885>
+                            <1*nid00910>
+                            <1*nid00993>
+                            <1*nid01001>
+</u/Geoffrey.Manikin> was used as the home directory.
+</gpfs/hps3/emc/meso/save/Geoffrey.Manikin/nwprod2/hrrr.v3.0.0/bufr> was used as the working directory.
+Started at Mon Feb  5 22:03:54 2018.
+Terminated at Mon Feb  5 22:04:02 2018.
+Results reported at Mon Feb  5 22:04:02 2018.
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/ksh --login
+#
+#BSUB -oo /gpfs/hps3/emc/meso/save/Geoffrey.Manikin/nwprod2/hrrr.v3.0.0/bufr/profdat.out
+#BSUB -eo /gpfs/hps3/emc/meso/save/Geoffrey.Manikin/nwprod2/hrrr.v3.0.0/bufr/profdat.err 
+#BSUB -J make_profdat 
+#BSUB -W 00:05
+#BSUB -P HRRR-T2O
+#BSUB -q "dev"
+#BSUB -M 1800
+#BSUB -extsched 'CRAYLINUX[]' -R '1*{select[craylinux && !vnode]} + 4*{select[craylinux && vnode]span[ptile=1] cu[type=cabinet]}' rusage[mem=1800]
+#BSUB -x
+#BSUB -a poe
+#
+
+module load ics
+module load ibmpe
+DOM=hrrr
+
+rm fort.*
+
+ln -sf /gpfs/hps3/emc/meso/save/Geoffrey.Manikin/staids/nam_staids.parm        fort.15
+ln -sf hrrr_profdat         fort.63
+
+echo "/gpfs/hps3/ptmp/Geoffrey.Manikin/history/wrfout_d01_2018-02-05_21_00_00" > infile
+echo "netcdf" >> infile
+echo "2018-02-05_21:00:00" >> infile
+
+ln -sf infile fort.105
+./staids.x < infile > staids.log 2>&1
+
+------------------------------------------------------------
+
+Exited with exit code 127.
+
+Resource usage summary:
+
+    CPU time :                                   0.90 sec.
+    Max Memory :                                 27 MB
+    Average Memory :                             -
+    Total Requested Memory :                     1800.00 MB
+    Delta Memory :                               1773.00 MB
+    Max Swap :                                   -
+    Max Processes :                              -
+    Max Threads :                                -
+    Run time :                                   6 sec.
+    Turnaround time :                            1063 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file </gpfs/hps3/emc/meso/save/Geoffrey.Manikin/nwprod2/hrrr.v3.0.0/bufr/profdat.err> for stderr output of this job.
+
+------------------------------------------------------------------------
+
+ALPS Resource Utilization Report (RUR) Summary for LSF Job: 1829
+
+STATUS:
+
+	exit codes:		0
+	cores:			0
+
+CPU:
+
+	stime:			226.048 s
+	utime:			16194.3 s
+
+MEMORY:
+
+	max_rss:		731296 MiB
+	active(anon):		340352 MiB
+	active(file):		17180 MiB
+	inactive(anon):		34872 MiB
+	inactive(file):		96428 MiB
+	majfaults:		62
+	minfaults:		57933934
+	pageswpcnt:		0
+
+I/O:
+
+	rcalls:			639712
+	wcalls:			1223132
+	rchar:			258.33 Gib
+	wchar:			55.28 Gib
+	bkiowait:		1.64024 s

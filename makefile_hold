@@ -1,0 +1,57 @@
+SHELL=	/bin/sh
+
+FC=mpfort  -f90=ifort -convert big_endian
+FC90=mpfort -f90=ifort -convert big_endian
+
+WRFPATH=/nwprod/sorc/wrf_shared.v1.1.0
+WRFFFLAGS = -I$(WRFPATH)/external/io_quilt
+
+NETCDF=/usrx/local/NetCDF/3.6.3
+
+NCDLIBS=-L$(NETCDF)/lib/ -lnetcdf
+
+WRFLIB=$(WRFPATH)/external/io_int/libwrfio_int.a \
+	$(WRFPATH)/main/libwrflib.a \
+        $(WRFPATH)/external/fftpack/fftpack5/libfftpack.a \
+        $(WRFPATH)/external/io_netcdf/libwrfio_nf.a \
+        $(WRFPATH)/external/io_grib1/libio_grib1.a \
+        $(WRFPATH)/external/io_grib_share/libio_grib_share.a \
+	$(WRFPATH)/frame/module_internal_header_util.o \
+	$(WRFPATH)/frame/pack_utils.o \
+    $(WRFPATH)/external/esmf_time_f90/libesmf_time.a \
+    $(WRFPATH)/external/RSL_LITE/task_for_point.o \
+    $(WRFPATH)/external/RSL_LITE/librsl_lite.a  
+
+
+WRFFLAGS = -I$(WRFPATH)/external/io_quilt
+W3LIBS = -L/nwprod/lib -lw3emc_v2.0.3_4 -lw3nco_v2.0.3_4  -lip_4 -lsp_4
+CMD=	staids_v2.x
+INCS=
+FFLAGS=$(NCDFFLAGS) $(WRFFLAGS) -lmpi 
+OBJS=	STALST_WRF.o
+OBJST=	getIVariableB.o getVariableB.o getVariable.o kinds_mod.o count_recs_wrf_binary_file.o inventory_wrf_binary_file.o next_buf.o retrieve_index.o
+####################################################
+$(CMD): $(OBJS) $(OBJST)
+	$(FC) -o $(CMD) $(OBJS) $(OBJST) $(NCDLIBS) $(WRFLIB) $(NCDLIBS) $(W3LIBS) $(NCDLIBS)
+$(OBJS):	$(INCS)
+$(OBJST):	$(INCS)
+STALST_WRF.o:	STALST_WRF.f retrieve_index.f
+	$(FC) -c -g $(FFLAGS) $*.f
+getVariable.o:  getVariable.f
+	$(FC) -c -FR getVariable.f
+getIVariableB.o:  getIVariableB.f
+	$(FC) -c -FR getIVariableB.f
+getVariableB.o:  getVariableB.f
+	$(FC) -c -FR getVariableB.f
+kinds_mod.o: kinds_mod.f
+	$(FC90) -c -FR kinds_mod.f
+count_recs_wrf_binary_file.o: count_recs_wrf_binary_file.f
+	$(FC90) -c -FR count_recs_wrf_binary_file.f
+inventory_wrf_binary_file.o: inventory_wrf_binary_file.f
+	$(FC90) -c -FR inventory_wrf_binary_file.f
+next_buf.o: next_buf.f
+	$(FC90) -c -FR next_buf.f
+retrieve_index.o: retrieve_index.f
+	$(FC90) -c -FR retrieve_index.f
+clean:	
+	-rm -f $(OBJS)
